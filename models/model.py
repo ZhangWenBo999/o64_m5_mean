@@ -119,7 +119,7 @@ class Palette(BaseModel):
             self.train_metrics.update(self.loss_fn.__name__, loss.item())
             if self.iter % self.opt['train']['log_iter'] == 0:
                 for key, value in self.train_metrics.result().items():
-                    self.logger.info('{:5s}: {}\t'.format(str(key), value))
+                    # self.logger.info('{:5s}: {}\t'.format(str(key), value))
                     self.writer.add_scalar(key, value)
                 for key, value in self.get_current_visuals().items():
                     self.writer.add_images(key, value)
