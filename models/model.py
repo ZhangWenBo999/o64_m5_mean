@@ -3,6 +3,9 @@ import tqdm
 from core.base_model import BaseModel
 from core.logger import LogTracker
 import copy
+import os
+import shutil
+
 class EMA():
     def __init__(self, beta=0.9999):
         super().__init__()
@@ -155,9 +158,17 @@ class Palette(BaseModel):
                     value = met(self.gt_image, self.output)
                     self.val_metrics.update(key, value)
                     self.writer.add_scalar(key, value)
-                for key, value in self.get_current_visuals(phase='val').items():
-                    self.writer.add_images(key, value)
-                self.writer.save_images(self.save_current_results())
+                # 保存最好的checkpoint下的图片
+                val_log = self.val_metrics.result()
+                if val_log['val/mae'] < self.opt['train']['min_val_mae_loss']:
+                    # 清空之前最好的checkpoint下的图片
+                    path = self.opt['path']['results'] + '\\val'
+                    if os.path.exists(path):
+                        shutil.rmtree(path)
+
+                    for key, value in self.get_current_visuals(phase='val').items():
+                        self.writer.add_images(key, value)
+                    self.writer.save_images(self.save_current_results())
 
         return self.val_metrics.result()
 
