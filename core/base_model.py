@@ -75,7 +75,7 @@ class BaseModel():
                         # 保存最好的checkpoint
                         if val_log['val/mae'] < self.opt['train']['min_val_mae_loss']:
                             self.opt['train']['min_val_flag'] = True
-                            path = self.opt['path']['checkpoint'] + '\\best'
+                            path = self.opt['path']['checkpoint'] + '/best'
                             # 清空之前最好的checkpoint
                             if os.path.exists(path):
                                 shutil.rmtree(path)
