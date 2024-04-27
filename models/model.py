@@ -162,7 +162,7 @@ class Palette(BaseModel):
                 val_log = self.val_metrics.result()
                 if val_log['val/mae'] < self.opt['train']['min_val_mae_loss']:
                     # 清空之前最好的checkpoint下的图片
-                    path = self.opt['path']['results'] + '\\val'
+                    path = self.opt['path']['results'] + '/val'
                     if os.path.exists(path):
                         shutil.rmtree(path)
 
