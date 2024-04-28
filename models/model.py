@@ -134,6 +134,9 @@ class Palette(BaseModel):
     def val_step(self):
         self.netG.eval()
         self.val_metrics.reset()
+        min_mae_list = []  # 记录最小值列表
+        min_mae = 0  # 记录最小值
+        pic_list = []  # 记录图片列表
         with torch.no_grad():
             for val_data in tqdm.tqdm(self.val_loader):
                 self.set_input(val_data)
@@ -158,19 +161,23 @@ class Palette(BaseModel):
                     value = met(self.gt_image, self.output)
                     self.val_metrics.update(key, value)
                     self.writer.add_scalar(key, value)
-                # 保存最好的checkpoint下的图片
-                val_log = self.val_metrics.result()
-                if val_log['val/mae'] < self.opt['train']['min_val_mae_loss']:
-                    # 清空之前最好的checkpoint下的图片
-                    path = self.opt['path']['results'] + '/val'
-                    if os.path.exists(path):
-                        shutil.rmtree(path)
+                    min_mae_list.append(self.val_metrics.result())
+                for key, value in self.get_current_visuals(phase='val').items():
+                    self.writer.add_images(key, value)
+                pic_list.append(self.save_current_results())
+                # self.writer.save_images(self.save_current_results())
 
-                    for key, value in self.get_current_visuals(phase='val').items():
-                        self.writer.add_images(key, value)
-                    self.writer.save_images(self.save_current_results())
+            # 记录mae平均值
+            min_mae = (min_mae_list[0]['val/mae'] + min_mae_list[1]['val/mae'])/2
+            # 保存最好的checkpoint下的图片
+            if min_mae < self.opt['train']['min_val_mae_loss']:
+                path = self.opt['path']['results'] + '/val'
+                if os.path.exists(path):
+                    shutil.rmtree(path)
+                self.writer.save_images(pic_list[0])
+                self.writer.save_images(pic_list[1])
 
-        return self.val_metrics.result()
+        return {'val/mae': min_mae}
 
     def test(self):
         self.netG.eval()
