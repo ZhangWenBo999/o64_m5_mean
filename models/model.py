@@ -107,6 +107,7 @@ class Palette(BaseModel):
     def train_step(self):
         self.netG.train()
         self.train_metrics.reset()
+        train_loss = 0
         for train_data in tqdm.tqdm(self.phase_loader):
             self.set_input(train_data)
             self.optG.zero_grad()
@@ -123,20 +124,20 @@ class Palette(BaseModel):
                     self.writer.add_scalar(key, value)
                 for key, value in self.get_current_visuals().items():
                     self.writer.add_images(key, value)
+            train_loss += self.train_metrics.result()['train/mse_loss']
             if self.ema_scheduler is not None:
                 if self.iter > self.ema_scheduler['ema_start'] and self.iter % self.ema_scheduler['ema_iter'] == 0:
                     self.EMA.update_model_average(self.netG_EMA, self.netG)
 
+        train_loss = train_loss / len(self.phase_loader)
         for scheduler in self.schedulers:
             scheduler.step()
-        return self.train_metrics.result()
+        return {'train/mse_loss': train_loss}
     
     def val_step(self):
         self.netG.eval()
         self.val_metrics.reset()
-        min_mae_list = []  # 记录最小值列表
-        min_mae = 0  # 记录最小值
-        pic_list = []  # 记录图片列表
+        val_loss = 0
         with torch.no_grad():
             for val_data in tqdm.tqdm(self.val_loader):
                 self.set_input(val_data)
@@ -161,23 +162,21 @@ class Palette(BaseModel):
                     value = met(self.gt_image, self.output)
                     self.val_metrics.update(key, value)
                     self.writer.add_scalar(key, value)
-                    min_mae_list.append(self.val_metrics.result())
+                val_loss += self.val_metrics.result()['val/mae']
                 for key, value in self.get_current_visuals(phase='val').items():
                     self.writer.add_images(key, value)
-                pic_list.append(self.save_current_results())
                 # self.writer.save_images(self.save_current_results())
 
             # 记录mae平均值
-            min_mae = (min_mae_list[0]['val/mae'] + min_mae_list[1]['val/mae'])/2
+            val_loss = val_loss / len(self.val_loader)
             # 保存最好的checkpoint下的图片
-            if min_mae < self.opt['train']['min_val_mae_loss']:
+            if val_loss < self.opt['train']['min_val_mae_loss']:
                 path = self.opt['path']['results'] + '/val'
                 if os.path.exists(path):
                     shutil.rmtree(path)
-                self.writer.save_images(pic_list[0])
-                self.writer.save_images(pic_list[1])
+                self.writer.save_images(self.save_current_results())
 
-        return {'val/mae': min_mae}
+        return {'val/mae': val_loss}
 
     def test(self):
         self.netG.eval()
