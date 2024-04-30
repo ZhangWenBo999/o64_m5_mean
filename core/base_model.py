@@ -89,6 +89,8 @@ class BaseModel():
                         if self.epoch == self.opt['train']['n_epoch'] or (time.time() - start_time >= 42300):
                             self.opt['train']['train_previous'].extend(train_mse_losses)
                             self.opt['train']['eval_previous'].extend(eval_mae_losses)
+                            pic_path = os.path.join(self.opt['path']['checkpoint'], 'loss_pic')
+                            os.makedirs(pic_path, exist_ok=True)
                             # 到达指定轮数，保存checkpoint 并 画图
                             plt.figure()
                             plt.title('Train Curve')
@@ -106,7 +108,7 @@ class BaseModel():
                             plt.plot(epochs, self.opt['train']['train_previous'])
 
                             # 保存训练损失图
-                            save_path = os.path.join(self.opt['path']['checkpoint'], 'best', 'train_losses.png')
+                            save_path = os.path.join(self.opt['path']['checkpoint'], 'loss_pic', 'train_losses.png')
                             plt.savefig(save_path)
 
                             plt.figure()
@@ -125,7 +127,7 @@ class BaseModel():
                             plt.plot(epochs, self.opt['train']['eval_previous'])
 
                             # 保存验证损失图
-                            save_path = os.path.join(self.opt['path']['checkpoint'], 'best', 'eval_losses.png')
+                            save_path = os.path.join(self.opt['path']['checkpoint'], 'loss_pic', 'eval_losses.png')
                             plt.savefig(save_path)
 
                             plt.show()
